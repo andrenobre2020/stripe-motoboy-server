@@ -3,32 +3,30 @@ import express from 'express';
 import cors from 'cors';
 import Stripe from 'stripe';
 
-// Initialize Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Stripe client using the secret key from environment variables
-// IMPORTANT: never expose your secret key in client-side code. It should only be used server-side.
-const stripe = new Stripe(process.env.sk_test_51SOWHBAiwsPsBAXgUnnVViLldqZ5rC2PO05yLicCT4KA8hgwQRsceU33WrQOsDtXu7s0yTnr665FU3ewH2jkdldg00Xq4zVTZT, {
+// ✅ Use a variável de ambiente no Render Dashboard:
+// STRIPE_SECRET_KEY = sk_test_...
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
 /**
- * Endpoint to create a Stripe Connect Express account for a motoboy.
- * Expects `email`, `nome`, and `cpf` in the request body.
- * Returns the created account's ID on success.
+ * Endpoint para criar uma conta Stripe Connect Express (motoboy)
  */
 app.post('/api/stripe/create-account', async (req, res) => {
   try {
     const { email, nome, cpf } = req.body;
 
-    // Basic validation
     if (!email || !nome || !cpf) {
       return res.status(400).json({ error: 'Informe email, nome e cpf.' });
     }
 
-    // Create the Stripe Connect account
+    const [firstName, ...rest] = nome.trim().split(' ');
+    const lastName = rest.join(' ') || '.';
+
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'BR',
@@ -39,22 +37,31 @@ app.post('/api/stripe/create-account', async (req, res) => {
         transfers: { requested: true },
       },
       individual: {
-        first_name: nome.split(' ')[0],
-        last_name: nome.split(' ').slice(1).join(' ') || '.',
+        first_name: firstName,
+        last_name: lastName,
         email,
       },
       metadata: { cpf },
     });
 
-    res.json({ accountId: account.id });
+    // Gera link de onboarding (opcional mas recomendado)
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      type: 'account_onboarding',
+      refresh_url: 'https://stripe.com/reauth',
+      return_url: 'https://stripe.com/success',
+    });
+
+    res.json({
+      success: true,
+      accountId: account.id,
+      onboardingUrl: accountLink.url,
+    });
   } catch (err) {
-    console.error('Stripe:', err);
-    res.status(500).json({ error: err.message || 'Erro ao criar conta Stripe.' });
+    console.error('Stripe Error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
