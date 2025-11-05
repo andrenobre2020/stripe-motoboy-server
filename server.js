@@ -4,24 +4,28 @@ import cors from 'cors';
 import Stripe from 'stripe';
 
 const app = express();
-app.use(cors()); // em produção, prefira: cors({ origin: ['seu-app://','http://localhost:19006'] })
+
+// Habilita CORS e JSON
+app.use(cors());
 app.use(express.json());
 
-const stripe = new Stripe(process.env.sk_test_51SOWHBAiwsPsBAXgUnnVViLldqZ5rC2PO05yLicCT4KA8hgwQRsceU33WrQOsDtXu7s0yTnr665FU3ewH2jkdldg00Xq4zVTZT, {
+// ✅ Usa a variável de ambiente corretamente
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
 /**
- * Cria a conta Connect (Express) e já retorna o onboardingUrl.
+ * Cria a conta Connect (Express) e retorna o onboardingUrl.
  */
 app.post('/api/stripe/create-account', async (req, res) => {
   try {
     const { email, nome, cpf } = req.body;
+
     if (!email || !nome || !cpf) {
       return res.status(400).json({ error: 'Informe email, nome e cpf.' });
     }
 
-    // 1) Cria conta
+    // 1️⃣ Cria conta no Stripe Connect
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'BR',
@@ -39,24 +43,33 @@ app.post('/api/stripe/create-account', async (req, res) => {
       metadata: { cpf },
     });
 
-    // 2) Cria link de onboarding
+    // 2️⃣ Cria link de onboarding
     const origin = process.env.PUBLIC_BASE_URL || 'https://stripe-motoboy-server.onrender.com';
+
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${origin}/connect/refresh`, // pode ser uma rota estática no Render
-      return_url: `${origin}/connect/return`,   // idem
+      refresh_url: `${origin}/connect/refresh`,
+      return_url: `${origin}/connect/return`,
       type: 'account_onboarding',
     });
 
-    return res.json({
+    res.json({
       accountId: account.id,
       onboardingUrl: accountLink.url,
     });
   } catch (err) {
-    console.error('Stripe:', err);
+    console.error('Stripe error:', err);
     res.status(500).json({ error: err.message || 'Erro ao criar conta Stripe.' });
   }
 });
 
+// Rotas auxiliares (para evitar erro no onboarding da Stripe)
+app.get('/connect/refresh', (_req, res) => {
+  res.send('Onboarding cancelado. Retorne ao app para tentar novamente.');
+});
+app.get('/connect/return', (_req, res) => {
+  res.send('Onboarding concluído com sucesso! Você pode fechar esta aba.');
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
