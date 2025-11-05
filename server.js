@@ -7,7 +7,7 @@ const app = express();
 app.use(cors()); // em produção, prefira: cors({ origin: ['seu-app://','http://localhost:19006'] })
 app.use(express.json());
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.sk_test_51SOWHBAiwsPsBAXgUnnVViLldqZ5rC2PO05yLicCT4KA8hgwQRsceU33WrQOsDtXu7s0yTnr665FU3ewH2jkdldg00Xq4zVTZT, {
   apiVersion: '2024-06-20',
 });
 
