@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // ✅ Usa a variável de ambiente corretamente
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.sk_test_51SOWHBAiwsPsBAXgUnnVViLldqZ5rC2PO05yLicCT4KA8hgwQRsceU33WrQOsDtXu7s0yTnr665FU3ewH2jkdldg00Xq4zVTZT, {
   apiVersion: '2024-06-20',
 });
 
