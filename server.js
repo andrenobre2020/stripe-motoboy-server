@@ -12,30 +12,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
-app.post('/api/stripe/create-account', async (req, res) => {
-  try {
-    const { email, nome, cpf } = req.body;
-    if (!email || !nome || !cpf) {
-      return res.status(400).json({ error: 'Informe email, nome e cpf.' });
-    }
 
-    // 1. Create the Stripe Connect (Express) account
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: 'BR',
-      email,
-      business_type: 'individual',
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      individual: {
-        first_name: nome.split(' ')[0],
-        last_name: nome.split(' ').slice(1).join(' ') || '.',
-        email,
-      },
-      metadata: { cpf },
-    });
+app.post('/api/stripe/create-account', async (req, res) => {
+  const { email, nome, cpf } = req.body;
+  // valida e cria account...
+  const account = await stripe.accounts.create({ … });
+  const accountLink = await stripe.accountLinks.create({
+    account: account.id,
+    refresh_url: `${origin}/connect/refresh`,
+    return_url: `${origin}/connect/return`,
+    type: 'account_onboarding',
+  });
+  res.json({ accountId: account.id, onboardingUrl: accountLink.url });
+});
+
 
     // 2. Create the onboarding link (motoboy fills in bank details)
     const origin = process.env.PUBLIC_BASE_URL || 'https://stripe-motoboy-server.onrender.com';
