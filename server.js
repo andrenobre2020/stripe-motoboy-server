@@ -7,14 +7,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ O Stripe lê a chave secreta da variável de ambiente STRIPE_SECRET_KEY
+// Initialise Stripe with the secret from the environment
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
-/**
- * Cria a conta Connect (Express) e retorna accountId + onboardingUrl.
- */
 app.post('/api/stripe/create-account', async (req, res) => {
   try {
     const { email, nome, cpf } = req.body;
@@ -22,7 +19,7 @@ app.post('/api/stripe/create-account', async (req, res) => {
       return res.status(400).json({ error: 'Informe email, nome e cpf.' });
     }
 
-    // 1) Cria a conta no Stripe Connect
+    // 1. Create the Stripe Connect (Express) account
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'BR',
@@ -40,7 +37,7 @@ app.post('/api/stripe/create-account', async (req, res) => {
       metadata: { cpf },
     });
 
-    // 2) Gera o link de onboarding para o motoboy completar seus dados
+    // 2. Create the onboarding link (motoboy fills in bank details)
     const origin = process.env.PUBLIC_BASE_URL || 'https://stripe-motoboy-server.onrender.com';
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
@@ -59,12 +56,12 @@ app.post('/api/stripe/create-account', async (req, res) => {
   }
 });
 
-// Rotas de retorno/opcional
+// optional: small endpoints for the onboarding redirect URLs
 app.get('/connect/refresh', (_req, res) => {
-  res.send('Onboarding cancelado. Retorne ao aplicativo para tentar novamente.');
+  res.send('Onboarding cancelado. Retorne ao app para tentar novamente.');
 });
 app.get('/connect/return', (_req, res) => {
-  res.send('Onboarding concluído! Você pode voltar ao aplicativo.');
+  res.send('Onboarding concluído! Você pode fechar esta janela e voltar ao aplicativo.');
 });
 
 const PORT = process.env.PORT || 5000;
