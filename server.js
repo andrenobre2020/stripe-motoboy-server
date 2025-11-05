@@ -8,9 +8,10 @@ app.use(cors());
 app.use(express.json());
 
 // Leia a chave secreta da env var STRIPE_SECRET_KEY
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe('sk_test_51SOWHBAiwsPsBAXgUnnVViLldqZ5rC2PO05yLicCT4KA8hgwQRsceU33WrQOsDtXu7s0yTnr665FU3ewH2jkdldg00Xq4zVTZT', {
   apiVersion: '2024-06-20',
 });
+
 /**
  * Cria a conta Connect (Express) e retorna accountId + onboardingUrl
  */
